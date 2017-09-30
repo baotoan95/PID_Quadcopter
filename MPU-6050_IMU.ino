@@ -85,7 +85,7 @@ void setup() {
 }
 
 void loop() {
-  throttle = pulseIn(A1, HIGH, 25000);
+  throttle = map(pulseIn(A1, HIGH, 25000), 1100, 1900, 1000, 2000);
   read_mpu_6050_data();                                                //Read the raw acc and gyro data from the MPU-6050
 
   gyro_x -= gyro_x_cal;                                                //Subtract the offset calibration value from the raw gyro_x value
@@ -152,8 +152,8 @@ void printResult() {
   if (val_3 > max_val) val_3 = max_val;                                          //Limit the esc-3 pulse to 2000us.
   if (val_4 > max_val) val_4 = max_val;                                          //Limit the esc-4 pulse to 2000us.
 
-  val_2 = val_2 + 200;
-  val_3 = val_3 + 100;
+  val_2 = val_2 + 165;
+  val_3 = val_3 + 80;
 
   Serial.print(throttle);
   Serial.print(" ");
@@ -165,10 +165,17 @@ void printResult() {
   Serial.print(" ");
   Serial.println(val_4);
 
-  esc_1.writeMicroseconds(val_1);
-  esc_2.writeMicroseconds(val_2);
-  esc_3.writeMicroseconds(val_3);
-  esc_4.writeMicroseconds(val_4);
+  if(throttle > 1000) {
+    esc_1.writeMicroseconds(val_1);
+    esc_2.writeMicroseconds(val_2);
+    esc_3.writeMicroseconds(val_3);
+    esc_4.writeMicroseconds(val_4);
+  } else {
+    esc_1.writeMicroseconds(1000);
+    esc_2.writeMicroseconds(1000);
+    esc_3.writeMicroseconds(1000);
+    esc_4.writeMicroseconds(1000);
+  }
 
 //  int val = 1200;
 //  esc_1.writeMicroseconds(val);

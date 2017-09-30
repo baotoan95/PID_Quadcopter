@@ -152,6 +152,9 @@ void printResult() {
   if (val_3 > max_val) val_3 = max_val;                                          //Limit the esc-3 pulse to 2000us.
   if (val_4 > max_val) val_4 = max_val;                                          //Limit the esc-4 pulse to 2000us.
 
+  val_2 = val_2 + 200;
+  val_3 = val_3 + 100;
+
   Serial.print(throttle);
   Serial.print(" ");
   Serial.print(val_1);
@@ -166,6 +169,12 @@ void printResult() {
   esc_2.writeMicroseconds(val_2);
   esc_3.writeMicroseconds(val_3);
   esc_4.writeMicroseconds(val_4);
+
+//  int val = 1200;
+//  esc_1.writeMicroseconds(val);
+//  esc_2.writeMicroseconds(val + 200);
+//  esc_3.writeMicroseconds(val + 100);
+//  esc_4.writeMicroseconds(val);
 }
 
 void cal_pid() {

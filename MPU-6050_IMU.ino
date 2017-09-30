@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <Servo.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //PID gain and limit settings
@@ -13,7 +14,7 @@ float pid_i_gain_pitch = pid_i_gain_roll;  //Gain setting for the pitch I-contro
 float pid_d_gain_pitch = pid_d_gain_roll;  //Gain setting for the pitch D-controller.
 int pid_max_pitch = pid_max_roll;          //Maximum output of the PID-controller (+/-)
 
-float pid_p_gain_yaw = 4.0;                //Gain setting for the pitch P-controller. //4.0
+float pid_p_gain_yaw = 5;                  //Gain setting for the pitch P-controller. //4.0
 float pid_i_gain_yaw = 0.02;               //Gain setting for the pitch I-controller. //0.02
 float pid_d_gain_yaw = 0.0;                //Gain setting for the pitch D-controller.
 int pid_max_yaw = 400;                     //Maximum output of the PID-controller (+/-)
@@ -26,6 +27,7 @@ long acc_x, acc_y, acc_z, acc_total_vector;
 int temperature;
 long gyro_x_cal, gyro_y_cal, gyro_z_cal;
 long loop_timer;
+int throttle, battery_voltage;
 int lcd_loop_counter;
 float angle_pitch, angle_roll;
 int angle_pitch_buffer, angle_roll_buffer;
@@ -39,17 +41,34 @@ float pid_i_mem_pitch, pid_pitch_setpoint, gyro_pitch_input, pid_output_pitch, p
 float pid_i_mem_yaw, pid_yaw_setpoint, gyro_yaw_input, pid_output_yaw, pid_last_yaw_d_error;
 boolean gyro_angles_set;
 
+int val_1, val_2, val_3, val_4;
+Servo esc_1, esc_2, esc_3, esc_4;
+
+int min_val = 1100, max_val = 2000;
+
+int ch1;
 
 
 void setup() {
-  Wire.begin();                                                        //Start I2C as master
-  Serial.begin(57600);                                                 //Use only for debugging
-  pinMode(13, OUTPUT);                                                 //Set output 13 (LED) as output
+  Wire.begin();                                                       //Start I2C as master
+  Serial.begin(57600);                                                //Use only for debugging
+
+  pinMode(A1, INPUT);
+
+  // Attachment output pin for 4 motors
+  esc_1.attach(6);
+  esc_2.attach(9);
+  esc_3.attach(10);
+  esc_4.attach(11);
+
+  esc_1.writeMicroseconds(1000);
+  esc_2.writeMicroseconds(1000);
+  esc_3.writeMicroseconds(1000);
+  esc_4.writeMicroseconds(1000);
+
+  delay(1000);                                                //Wait 5000ms.
 
   setup_mpu_6050_registers();                                          //Setup the registers of the MPU-6050 (500dfs / +/-8g) and start the gyro
-
-  digitalWrite(13, HIGH);                                              //Set digital output 13 high to indicate startup
-
 
   delay(1500);                                                         //Delay 1.5 second to display the text
   for (int cal_int = 0; cal_int < 2000 ; cal_int ++) {                 //Run this code 2000 times
@@ -63,15 +82,10 @@ void setup() {
   gyro_y_cal /= 2000;                                                  //Divide the gyro_y_cal variable by 2000 to get the avarage offset
   gyro_z_cal /= 2000;                                                  //Divide the gyro_z_cal variable by 2000 to get the avarage offset
 
-
-
-  digitalWrite(13, LOW);                                               //All done, turn the LED off
-
-  loop_timer = micros();                                               //Reset the loop timer
 }
 
 void loop() {
-
+  throttle = pulseIn(A1, HIGH, 25000);
   read_mpu_6050_data();                                                //Read the raw acc and gyro data from the MPU-6050
 
   gyro_x -= gyro_x_cal;                                                //Subtract the offset calibration value from the raw gyro_x value
@@ -117,10 +131,41 @@ void loop() {
   angle_roll_output = angle_roll_output * 0.9 + angle_roll * 0.1;      //Take 90% of the output roll value and add 10% of the raw roll value
 
   cal_pid();
-  printResult();                                                       //Write the roll and pitch values
 
-  while (micros() - loop_timer < 4000);                                //Wait until the loop_timer reaches 4000us (250Hz) before starting the next loop
-  loop_timer = micros();                                               //Reset the loop timer
+  printResult();                                                       //Write the roll and pitch values
+  delay(100);
+}
+
+void printResult() {
+  val_1 = throttle - pid_output_pitch + pid_output_roll - pid_output_yaw; //Calculate the pulse for esc 1 (front-right - CCW)
+  val_2 = throttle + pid_output_pitch + pid_output_roll + pid_output_yaw; //Calculate the pulse for esc 2 (rear-right - CW)
+  val_3 = throttle + pid_output_pitch - pid_output_roll - pid_output_yaw; //Calculate the pulse for esc 3 (rear-left - CCW)
+  val_4 = throttle - pid_output_pitch - pid_output_roll + pid_output_yaw; //Calculate the pulse for esc 4 (front-left - CW)
+
+  if (val_1 < min_val) val_1 = min_val;                                         //Keep the motors running.
+  if (val_2 < min_val) val_2 = min_val;                                         //Keep the motors running.
+  if (val_3 < min_val) val_3 = min_val;                                         //Keep the motors running.
+  if (val_4 < min_val) val_4 = min_val;                                         //Keep the motors running.
+
+  if (val_1 > max_val) val_1 = max_val;                                          //Limit the esc-1 pulse to 2000us.
+  if (val_2 > max_val) val_2 = max_val;                                          //Limit the esc-2 pulse to 2000us.
+  if (val_3 > max_val) val_3 = max_val;                                          //Limit the esc-3 pulse to 2000us.
+  if (val_4 > max_val) val_4 = max_val;                                          //Limit the esc-4 pulse to 2000us.
+
+  Serial.print(throttle);
+  Serial.print(" ");
+  Serial.print(val_1);
+  Serial.print(" ");
+  Serial.print(val_2);
+  Serial.print(" ");
+  Serial.print(val_3);
+  Serial.print(" ");
+  Serial.println(val_4);
+
+  esc_1.writeMicroseconds(val_1);
+  esc_2.writeMicroseconds(val_2);
+  esc_3.writeMicroseconds(val_3);
+  esc_4.writeMicroseconds(val_4);
 }
 
 void cal_pid() {
@@ -175,18 +220,6 @@ void read_mpu_6050_data() {                                            //Subrout
   gyro_y = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_y variable
   gyro_z = Wire.read() << 8 | Wire.read();                             //Add the low and high byte to the gyro_z variable
 
-}
-
-void printResult() {
-  Serial.print(angle_pitch);
-  Serial.print(" ");
-  Serial.print(angle_roll);
-  Serial.print("  ");
-  Serial.print(pid_output_roll);
-  Serial.print("  ");
-  Serial.print(pid_output_pitch);
-  Serial.print("  ");
-  Serial.println(pid_output_yaw);
 }
 
 void setup_mpu_6050_registers() {

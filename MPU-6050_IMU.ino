@@ -4,9 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //PID gain and limit settings
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-float pid_p_gain_roll = 1.3;               //Gain setting for the roll P-controller
-float pid_i_gain_roll = 0.04;              //Gain setting for the roll I-controller
-float pid_d_gain_roll = 18.0;              //Gain setting for the roll D-controller
+float pid_p_gain_roll = 4;               //Gain setting for the roll P-controller
+float pid_i_gain_roll = 0.0;              //Gain setting for the roll I-controller
+float pid_d_gain_roll = 0.0;              //Gain setting for the roll D-controller
 int pid_max_roll = 400;                    //Maximum output of the PID-controller (+/-)
 
 float pid_p_gain_pitch = pid_p_gain_roll;  //Gain setting for the pitch P-controller.
@@ -14,7 +14,7 @@ float pid_i_gain_pitch = pid_i_gain_roll;  //Gain setting for the pitch I-contro
 float pid_d_gain_pitch = pid_d_gain_roll;  //Gain setting for the pitch D-controller.
 int pid_max_pitch = pid_max_roll;          //Maximum output of the PID-controller (+/-)
 
-float pid_p_gain_yaw = 5;                  //Gain setting for the pitch P-controller. //4.0
+float pid_p_gain_yaw = 4;                  //Gain setting for the pitch P-controller. //4.0
 float pid_i_gain_yaw = 0.02;               //Gain setting for the pitch I-controller. //0.02
 float pid_d_gain_yaw = 0.0;                //Gain setting for the pitch D-controller.
 int pid_max_yaw = 400;                     //Maximum output of the PID-controller (+/-)
@@ -85,6 +85,7 @@ void setup() {
 }
 
 void loop() {
+//  throttle = 1200;
   throttle = map(pulseIn(A1, HIGH, 25000), 1100, 1900, 1000, 2000);
   read_mpu_6050_data();                                                //Read the raw acc and gyro data from the MPU-6050
 
@@ -133,7 +134,7 @@ void loop() {
   cal_pid();
 
   printResult();                                                       //Write the roll and pitch values
-  delay(100);
+  delay(200);
 }
 
 void printResult() {
@@ -152,36 +153,42 @@ void printResult() {
   if (val_3 > max_val) val_3 = max_val;                                          //Limit the esc-3 pulse to 2000us.
   if (val_4 > max_val) val_4 = max_val;                                          //Limit the esc-4 pulse to 2000us.
 
-  val_2 = val_2 + 165;
-  val_3 = val_3 + 80;
+//  val_2 = val_2 + 120;
+//  val_3 = val_3 + 80;
+//
+//  Serial.print(throttle);
+//  Serial.print(" ");
+//  Serial.print(val_1);
+//  Serial.print(" ");
+//  Serial.print(val_2);
+//  Serial.print(" ");
+//  Serial.print(val_3);
+//  Serial.print(" ");
+//  Serial.println(val_4);
 
-  Serial.print(throttle);
-  Serial.print(" ");
-  Serial.print(val_1);
-  Serial.print(" ");
-  Serial.print(val_2);
-  Serial.print(" ");
-  Serial.print(val_3);
-  Serial.print(" ");
-  Serial.println(val_4);
+  Serial.print(pid_output_pitch);
+  Serial.print("     ");
+  Serial.print(pid_output_roll);
+  Serial.print("     ");
+  Serial.println(pid_output_yaw);
 
-  if(throttle > 1000) {
-    esc_1.writeMicroseconds(val_1);
-    esc_2.writeMicroseconds(val_2);
-    esc_3.writeMicroseconds(val_3);
-    esc_4.writeMicroseconds(val_4);
-  } else {
-    esc_1.writeMicroseconds(1000);
-    esc_2.writeMicroseconds(1000);
-    esc_3.writeMicroseconds(1000);
-    esc_4.writeMicroseconds(1000);
-  }
+//  if(throttle > 1000) {
+//    esc_1.writeMicroseconds(val_1);
+//    esc_2.writeMicroseconds(val_2);
+//    esc_3.writeMicroseconds(val_3);
+//    esc_4.writeMicroseconds(val_4);
+//  } else {
+//    esc_1.writeMicroseconds(1000);
+//    esc_2.writeMicroseconds(1000);
+//    esc_3.writeMicroseconds(1000);
+//    esc_4.writeMicroseconds(1000);
+//  }
 
 //  int val = 1200;
-//  esc_1.writeMicroseconds(val);
-//  esc_2.writeMicroseconds(val + 200);
-//  esc_3.writeMicroseconds(val + 100);
-//  esc_4.writeMicroseconds(val);
+//  esc_1.writeMicroseconds(val_1);
+//  esc_2.writeMicroseconds(val_2);
+//  esc_3.writeMicroseconds(val_3);
+//  esc_4.writeMicroseconds(val_4);
 }
 
 void cal_pid() {

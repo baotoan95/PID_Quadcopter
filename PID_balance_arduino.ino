@@ -1,3 +1,4 @@
+
 #include <Wire.h>
 #include <Servo.h>
 
@@ -27,9 +28,9 @@ float pid_p = 0;
 float pid_i = 0;
 float pid_d = 0;
 /////////////////PID CONSTANTS/////////////////
-double kp = 4; //3.55
-double ki = 0.005; //0.003
-double kd = 2.05; //2.05
+double kp = 3.55; //3.55
+double ki = 0.006; //0.003
+double kd = 0.001; //2.05
 ///////////////////////////////////////////////
 
 double throttle = 1300; //initial value of throttle to the motors
@@ -43,9 +44,9 @@ void setup() {
   Wire.write(0x6B);
   Wire.write(0);
   Wire.endTransmission(true);
-  Serial.begin(250000);
+  Serial.begin(115200);
   right_prop.attach(10); //attatch the right motor to pin 3
-  left_prop.attach(6);  //attatch the left motor to pin 5
+  left_prop.attach(3);  //attatch the left motor to pin 5
 
   time = millis(); //Start counting time in milliseconds
   left_prop.writeMicroseconds(1000);
@@ -54,7 +55,7 @@ void setup() {
 }//end of setup void
 
 void loop() {
-
+  throttle = map(pulseIn(A1, HIGH, 25000), 1000, 1900, 1100, 2000);
   /////////////////////////////I M U/////////////////////////////////////
   timePrev = time;  // the previous time is stored before the actual time read
   time = millis();  // actual time read
@@ -160,10 +161,16 @@ void loop() {
     pwmLeft = 2000;
   }
 
+  Serial.print(pwmLeft);
+  Serial.print("  ");
+  Serial.println(pwmRight);
+  
   /*Finnaly using the servo function we create the PWM pulses with the calculated
     width for each pulse*/
+  
+    
   left_prop.writeMicroseconds(pwmLeft);
   right_prop.writeMicroseconds(pwmRight);
   previous_error = error; //Remember to store the previous error.
-
+  delay(40);
 }//end of loop void
